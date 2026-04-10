@@ -29,18 +29,21 @@ jobs:
 
     - name: Run build script
       run: |
-        # apt-get update && apt-get install -y libgl-dev
         git clone https://github.com/iMoonLab/yolov13.git --depth 1 yolov13_source
         echo current path = ${PWD}
         export PYTHONPATH=${PWD}/yolov13_source
-        pip install onnxsim
+        
+        # 安装 cmake 解决报错
+        apt-get update && apt-get install -y cmake
+        
+        pip install onnxsim --no-cache-dir
         cd yolo
         mkdir -pv onnx
         cd onnx
         wget https://github.com/iMoonLab/yolov13/releases/download/yolov13/yolov13n.pt -O yolo.pt
         python ../export_det_v13_origin.py -w yolo.pt
         mv yolo.onnx yolov13_origin.onnx 
-        python ../export_det_v13.pyc -w yolo.pt --sim
+        python ../export_det_v13.py -w yolo.pt --sim
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
@@ -79,7 +82,6 @@ jobs:
         cp -vr ${SRC_PATH}/onnx_artifacts/*.onnx ./rknn/
         python convert.pyc rknn/yolo.onnx rk3588 i8 rknn/yolo.rknn
 
-
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
@@ -113,7 +115,6 @@ jobs:
         export LD_LIBRARY_PATH=/usr/local/Ascend/ascend-toolkit/latest/x86_64-linux/devlib/:$LD_LIBRARY_PATH
         cd om
         atc --model=yolo.onnx --framework=5 --output=yolo --soc_version=Ascend310B4
-
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
