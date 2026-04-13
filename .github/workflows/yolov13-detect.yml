@@ -1,41 +1,30 @@
-name: 仅转换我的 best.onnx 到 310P3 OM
+name: 310P3 一次必成版
 on:
   workflow_dispatch:
 
 jobs:
-  onnx2om:
+  build:
     runs-on: ubuntu-22.04
     container:
-      image: kaylor/atc
+      image: harbor.apulis.cn:443/aihub/ascend-cann:7.0.0.1046
       options: --privileged
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Run build script
-      shell: bash
-      run: |
-        SRC_PATH=$(pwd)
-        mkdir -pv om
-        
-        # 复制你的 best.onnx 到工作目录
-        cp ${SRC_PATH}/yolo/best.onnx ./om/yolo.onnx
-        
-        # 加载昇腾环境，确保atc命令可用
-        source /usr/local/Ascend/ascend-toolkit/set_env.sh
-        export LD_LIBRARY_PATH=/usr/local/Ascend/ascend-toolkit/latest/x86_64-linux/devlib/:$LD_LIBRARY_PATH
-        
-        cd om
-        # 关键：指定310P系列SOC版本，适配你的310P3板卡
-        atc --model=yolo.onnx \
-            --framework=5 \
-            --output=yolo_310P3 \
-            --soc_version=Ascend310P \
-            --precision_mode=force_fp16
+      - name: 转换 ONNX 到 OM (310P3 专用)
+        run: |
+          source /usr/local/Ascend/ascend-toolkit/set_env.sh
+          
+          atc --model=./yolo/best.onnx \
+              --framework=5 \
+              --output=yolo_310P3 \
+              --soc_version=Ascend310P \
+              --input_format=NCHW \
+              --precision_mode=force_fp16
 
-    - name: Upload artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: om_artifacts_310P3
-        path: om/*.om
+      - name: 上传模型
+        uses: actions/upload-artifact@v4
+        with:
+          name: om_model_310P3
+          path: ./*.om
