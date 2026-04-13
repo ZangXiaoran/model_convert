@@ -1,26 +1,37 @@
-name: 310P3 一次必成版 (公开镜像)
+name: 310P3 裸机转换 (解决Docker拉取失败)
 on:
   workflow_dispatch:
 
 jobs:
   onnx2om:
     runs-on: ubuntu-22.04
-    container:
-      # 公开镜像，GitHub 可直接拉取，CANN 7.0 完美支持 310P
-      image: ascendai/cann:7.0.0.alpha001
-      options: --privileged
-
     steps:
-      - name: Checkout code
+      - name: Checkout 代码
         uses: actions/checkout@v4
 
-      - name: 转换 ONNX 到 OM (310P3 专用)
-        shell: bash
+      - name: 安装昇腾官方 ATC (无需Docker)
         run: |
-          # 加载昇腾环境
+          # 安装基础依赖
+          sudo apt-get update && sudo apt-get install -y python3-pip wget
+          
+          # 下载昇腾官方社区版工具链（支持310P，公网可下）
+          wget https://ascend-repo.obs.cn-east-2.myhuaweicl.com/ascend-toolkit/7.0.0.alpha001/ubuntu-x86_64/ascend-toolkit_7.0.0.alpha001_linux-x86_64.tar.gz -O ascend.tar.gz
+          
+          # 解压
+          mkdir -p /usr/local/Ascend
+          tar -zxf ascend.tar.gz -C /usr/local/Ascend/
+          
+          # 加载环境
           source /usr/local/Ascend/ascend-toolkit/set_env.sh
           
-          # 执行转换，适配 310P3
+          # 验证ATC
+          atc --version
+
+      - name: 转换 ONNX 到 OM (310P3 专用)
+        run: |
+          source /usr/local/Ascend/ascend-toolkit/set_env.sh
+          
+          # 直接执行转换，绝对路径
           atc --model=./yolo/best.onnx \
               --framework=5 \
               --output=yolo_310P3 \
@@ -31,5 +42,5 @@ jobs:
       - name: 上传模型
         uses: actions/upload-artifact@v4
         with:
-          name: om_model_310P3
+          name: om_model_310P3_Final
           path: ./*.om
