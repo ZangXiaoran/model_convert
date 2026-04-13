@@ -1,4 +1,4 @@
-name: 仅转换我的 best.onnx 到 OM
+name: 仅转换我的 best.onnx 到 OM (修复版)
 on:
   workflow_dispatch:
 
@@ -13,13 +13,15 @@ jobs:
       - name: 拉取代码
         uses: actions/checkout@v4
 
-      - name: 转换 ONNX 到 OM
+      - name: 转换 ONNX 到 OM (使用绝对路径，必成功)
         run: |
-          source /usr/local/Ascend/ascend-toolkit/set_env.sh
-          atc --model=yolo/best.onnx \
-              --framework=5 \
-              --output=best \
-              --soc_version=Ascend310B4
+          # 必须指定 bash 加载环境变量，否则 atc 命令找不到
+          bash -c "source /usr/local/Ascend/ascend-toolkit/set_env.sh && \
+          /usr/local/Ascend/ascend-toolkit/latest/x86_64-linux/devlib/atc \
+          --model=yolo/best.onnx \
+          --framework=5 \
+          --output=best \
+          --soc_version=Ascend310B4"
 
       - name: 上传 OM 模型
         uses: actions/upload-artifact@v4
