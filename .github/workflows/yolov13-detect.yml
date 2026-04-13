@@ -1,21 +1,26 @@
-name: 310P3 一次必成版
+name: 310P3 一次必成版 (公开镜像)
 on:
   workflow_dispatch:
 
 jobs:
-  build:
+  onnx2om:
     runs-on: ubuntu-22.04
     container:
-      image: harbor.apulis.cn:443/aihub/ascend-cann:7.0.0.1046
+      # 公开镜像，GitHub 可直接拉取，CANN 7.0 完美支持 310P
+      image: ascendai/cann:7.0.0.alpha001
       options: --privileged
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: 转换 ONNX 到 OM (310P3 专用)
+        shell: bash
         run: |
+          # 加载昇腾环境
           source /usr/local/Ascend/ascend-toolkit/set_env.sh
           
+          # 执行转换，适配 310P3
           atc --model=./yolo/best.onnx \
               --framework=5 \
               --output=yolo_310P3 \
