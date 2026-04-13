@@ -1,4 +1,4 @@
-name: 仅转换我的 best.onnx 到 OM (官方同款环境，绝对不报错)
+name: 仅转换我的 best.onnx 到 310P3 OM
 on:
   workflow_dispatch:
 
@@ -19,18 +19,23 @@ jobs:
         SRC_PATH=$(pwd)
         mkdir -pv om
         
-        # 复制你的 best.onnx 进去
+        # 复制你的 best.onnx 到工作目录
         cp ${SRC_PATH}/yolo/best.onnx ./om/yolo.onnx
         
-        # 官方原版环境（这就是它不报错的原因！）
+        # 加载昇腾环境，确保atc命令可用
         source /usr/local/Ascend/ascend-toolkit/set_env.sh
         export LD_LIBRARY_PATH=/usr/local/Ascend/ascend-toolkit/latest/x86_64-linux/devlib/:$LD_LIBRARY_PATH
         
         cd om
-        atc --model=yolo.onnx --framework=5 --output=yolo --soc_version=Ascend310B4
+        # 关键：指定310P系列SOC版本，适配你的310P3板卡
+        atc --model=yolo.onnx \
+            --framework=5 \
+            --output=yolo_310P3 \
+            --soc_version=Ascend310P \
+            --precision_mode=force_fp16
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: om_artifacts
+        name: om_artifacts_310P3
         path: om/*.om
