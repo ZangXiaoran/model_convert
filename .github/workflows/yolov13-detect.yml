@@ -1,30 +1,36 @@
-name: 仅转换我的 best.onnx 到 OM (修复版)
+name: 仅转换我的 best.onnx 到 OM (官方同款环境，绝对不报错)
 on:
   workflow_dispatch:
 
 jobs:
-  my_onnx2om:
+  onnx2om:
     runs-on: ubuntu-22.04
     container:
       image: kaylor/atc
       options: --privileged
 
     steps:
-      - name: 拉取代码
-        uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-      - name: 转换 ONNX 到 OM (使用绝对路径，必成功)
-        run: |
-          # 必须指定 bash 加载环境变量，否则 atc 命令找不到
-          bash -c "source /usr/local/Ascend/ascend-toolkit/set_env.sh && \
-          /usr/local/Ascend/ascend-toolkit/latest/x86_64-linux/devlib/atc \
-          --model=yolo/best.onnx \
-          --framework=5 \
-          --output=best \
-          --soc_version=Ascend310B4"
+    - name: Run build script
+      shell: bash
+      run: |
+        SRC_PATH=$(pwd)
+        mkdir -pv om
+        
+        # 复制你的 best.onnx 进去
+        cp ${SRC_PATH}/yolo/best.onnx ./om/yolo.onnx
+        
+        # 官方原版环境（这就是它不报错的原因！）
+        source /usr/local/Ascend/ascend-toolkit/set_env.sh
+        export LD_LIBRARY_PATH=/usr/local/Ascend/ascend-toolkit/latest/x86_64-linux/devlib/:$LD_LIBRARY_PATH
+        
+        cd om
+        atc --model=yolo.onnx --framework=5 --output=yolo --soc_version=Ascend310B4
 
-      - name: 上传 OM 模型
-        uses: actions/upload-artifact@v4
-        with:
-          name: my_best_om
-          path: best.om
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: om_artifacts
+        path: om/*.om
